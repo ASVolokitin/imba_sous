@@ -64,6 +64,11 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+void            inc_ref(void *pa);
+void            dec_ref(void *pa);
+int             get_ref(void *pa);
+void            acquire_ref_lock();
+void            release_ref_lock();
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -202,4 +207,9 @@ void           bd_init(void*,void*);
 void           bd_free(void*);
 void           *bd_malloc(uint64);
 
-
+void            vmprint(pagetable_t pagetable);
+int             uvmcopy_cow(pagetable_t pagetable, uint64 va);
+int             is_cow(pagetable_t pagetable, uint64 va);
+int             uvmcopy_cow(pagetable_t pagetable, uint64 va);
+int             valid_va(struct proc *p, uint64 va);
+int             lazy_alloc(pagetable_t, uint64);

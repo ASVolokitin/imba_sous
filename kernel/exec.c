@@ -33,6 +33,10 @@ exec(char *path, char **argv)
 
   begin_op();
 
+  if (p->pid == 1) {
+      vmprint(p->pagetable);
+  }
+
   if((ip = namei(path)) == 0){
     end_op();
     return -1;
@@ -86,6 +90,7 @@ exec(char *path, char **argv)
   uvmclear(pagetable, sz-(USERSTACK+1)*PGSIZE);
   sp = sz;
   stackbase = sp - USERSTACK*PGSIZE;
+  p->ustack = stackbase;
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {

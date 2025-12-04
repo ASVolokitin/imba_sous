@@ -126,7 +126,7 @@ found:
   p->state = USED;
 
   // Allocate a trapframe page.
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+  if(!(p->trapframe = (struct trapframe *)kalloc())) {
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -134,7 +134,7 @@ found:
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
-  if(p->pagetable == 0){
+  if(!p->pagetable) {
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -408,14 +408,14 @@ wait(uint64 addr)
         if(pp->state == ZOMBIE){
           // Found one.
           pid = pp->pid;
-          if(addr != 0 && copyout(p->pagetable, addr, (char *)&pp->xstate,
-                                  sizeof(pp->xstate)) < 0) {
-            release(&pp->lock);
+          int xstate = pp->xstate;
+          freeproc(pp);  // Free child's pages first to make memory available
+          release(&pp->lock);
+          if(addr != 0 && copyout(p->pagetable, addr, (char *)&xstate,
+                                  sizeof(xstate)) < 0) {
             release(&wait_lock);
             return -1;
           }
-          freeproc(pp);
-          release(&pp->lock);
           release(&wait_lock);
           return pid;
         }

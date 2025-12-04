@@ -67,7 +67,32 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if (r_scause() == 15 || r_scause() == 13) {
+      uint64 va = r_stval();
+      uint64 page = PGROUNDDOWN(va);
+
+      // Check if address is valid: must be below p->sz
+      if (va >= p->sz) {
+          goto kill_proc;
+      }
+
+      pte_t *pte = walk(p->pagetable, page, 0);
+      if (pte == 0 || !(*pte & PTE_V)) {
+          // Lazy allocation for unmapped pages
+          if (lazy_alloc(p->pagetable, page) != 0) {
+              goto kill_proc;
+          }
+      } else if (*pte & PTE_COW) {
+          // COW page - need to copy
+          if (uvmcopy_cow(p->pagetable, page)) {
+              goto kill_proc;
+          }
+      } else {
+          // Page exists but fault occurred - invalid access
+          goto kill_proc;
+      }
   } else {
+    kill_proc:
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
     setkilled(p);
